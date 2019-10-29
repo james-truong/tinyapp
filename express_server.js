@@ -35,9 +35,10 @@ const findingIfUserExists = function (data = users, email) {
 }
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
 };
+
 
 // app.get("/", (req, res) => {
 //   res.send("Hello!");
@@ -59,103 +60,138 @@ function generateRandomString() {
   }
   return result;
 }
-app.get("/urls", (req, res) => {
-  let templateVars = {
-    urls: urlDatabase, user: users[req.cookies["user_id"]]
-  };
-  res.render("urls_index", templateVars);
-});
-app.get("/register", (req, res) => {
-  let templateVars = {
-    urls: urlDatabase, user: users[req.cookies["user_id"]]
-  };
-  res.render("register", templateVars);
-});
-app.get("/login", (req, res) => {
-  let templateVars = {
-    urls: urlDatabase, user: users[req.cookies["user_id"]]
-  };
-  res.render("login", templateVars);
-});
-
-app.get("/urls/new", (req, res) => {
-  let templateVars = {
-    urls: urlDatabase, user: users[req.cookies["user_id"]]
-  };
-  res.render("urls_new", templateVars);
-});
-
-app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  let random = generateRandomString();
-  urlDatabase[random] = req.body.longURL;
-  res.redirect("/urls/");
-});
-
-app.post("/login", (req, res) => {
-  let emails = [];
-  for (const user of Object.keys(users)) {
-    emails.push(users[user].email)
-  }
-  if(!emails.includes(req.body.email)){
-    res.status(403);
-    res.send("Error, email is not registered.")
-  }
-  for (const user of Object.keys(users)) {
-    if (users[user].email === req.body.email && users[user].password === req.body.password) {
-      res.cookie('user_id', user);
-      res.redirect("/urls/");
+const getUrlsForUser = function(userId) {
+  const urlRecords = urlDatabase;
+  const filtered = {};
+  for (let key of Object.keys(urlDatabase)) {
+    if (urlDatabase[key].userID === userId) {
+       filtered[key] = {longURL: urlDatabase[key].longURL};
     }
   }
-  res.send("Email exists, passwords don't!")
+  console.log(filtered);
+  return filtered;
+};
+  app.get("/urls", (req, res) => {
+    let filtered = getUrlsForUser(req.cookies["user_id"]);
+    let templateVars = {
+      urls: filtered, user: users[req.cookies["user_id"]]
+    };
+    console.log(templateVars.urls)
+    res.render("urls_index", templateVars);
+  });
+    app.get("/register", (req, res) => {
+      let templateVars = {
+        urls: urlDatabase, user: users[req.cookies["user_id"]]
+      };
+      res.render("register", templateVars);
+    });
+    app.get("/login", (req, res) => {
+      let templateVars = {
+        urls: urlDatabase, user: users[req.cookies["user_id"]]
+      };
+      res.render("login", templateVars);
+    });
 
-});
-app.post("/logout", (req, res) => {
-  res.clearCookie('user_id')
-  res.redirect("/urls/");
-});
+    app.get("/urls/new", (req, res) => {
+      if (!req.cookies["user_id"]) {
+        res.redirect("/login");
+      } else {
+        let templateVars = {
+          urls: urlDatabase, user: users[req.cookies["user_id"]]
+        };
+        res.render("urls_new", templateVars);
+      };
+    })
 
-app.post("/register", (req, res) => {
-  if (req.body.password === '') {
-    res.status(400);
-    res.send('None shall pass');
-  }
-  if (findingIfUserExists(users, req.body.email)) {
-    res.status(400);
-    res.send('None shall pass');
-  }
-  let random = generateRandomString();
-  users[random] = {};
-  users[random].id = random;
-  users[random].email = req.body.email;
-  users[random].password = req.body.password;
+    app.post("/urls/", (req, res) => {
+      let random = generateRandomString();
+      urlDatabase[random] = {};
+      urlDatabase[random].longURL = req.body.longURL;
+      urlDatabase[random].userID = req.cookies["user_id"];
+      res.redirect("/urls/");
+    });
 
-  res.cookie('user_id', random);
-  console.log(users);
-  res.redirect("/urls/")
-});
+    app.post("/login", (req, res) => {
+      let emails = [];
+      for (const user of Object.keys(users)) {
+        emails.push(users[user].email)
+      }
+      if (!emails.includes(req.body.email)) {
+        res.status(403);
+        res.send("Error, email is not registered.")
+      }
+      for (const user of Object.keys(users)) {
+        if (users[user].email === req.body.email && users[user].password === req.body.password) {
+          res.cookie('user_id', user);
+          res.redirect("/urls/");
+        }
+      }
+      res.send("Email exists, passwords don't!")
 
-app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["user_id"]] };
-  res.render("urls_show", templateVars);
-});
+    });
+    app.post("/logout", (req, res) => {
+      res.clearCookie('user_id')
+      res.redirect("/urls/");
+    });
 
-app.get("/u/:shortURL", (req, res) => {
-  // const longURL = ...
-  let short = req.params.shortURL;
-  res.redirect(urlDatabase[short]);
-});
+    app.post("/register", (req, res) => {
+      if (req.body.password === '') {
+        res.status(400);
+        res.send('None shall pass');
+      }
+      if (findingIfUserExists(users, req.body.email)) {
+        res.status(400);
+        res.send('None shall pass');
+      }
+      let random = generateRandomString();
+      users[random] = {};
+      users[random].id = random;
+      users[random].email = req.body.email;
+      users[random].password = req.body.password;
 
-app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls");
-});
+      res.cookie('user_id', random);
+      res.redirect("/urls/")
+    });
 
-app.post("/urls/:shortURL/update", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.longUrl;
-  res.redirect("/urls");
-});
+    app.get("/urls/:shortURL", (req, res) => {
+      let filtered = getUrlsForUser(req.cookies["user_id"]);
+      filtered_shorts = Object.keys(filtered);
+      if(!filtered_shorts.includes(req.params.shortURL)){
+        res.status(500);
+        res.send("This link does not belong to you!")
+      }
+      let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.cookies["user_id"]] };
+      res.render("urls_show", templateVars);
+    });
 
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
-});
+    app.get("/u/:shortURL", (req, res) => {
+      // const longURL = ...
+      let short = req.params.shortURL;
+      res.redirect(urlDatabase[short].longURL);
+    });
+
+    app.post("/urls/:shortURL/delete", (req, res) => {
+      let filtered = getUrlsForUser(req.cookies["user_id"]);
+      filtered_shorts = Object.keys(filtered);
+      if(!filtered_shorts.includes(req.params.shortURL)){
+        res.status(500);
+        res.send("This link does not belong to you!")
+      }
+      delete urlDatabase[req.params.shortURL];
+      res.redirect("/urls");
+    });
+
+    app.post("/urls/:shortURL/update", (req, res) => {
+      let filtered = getUrlsForUser(req.cookies["user_id"]);
+      filtered_shorts = Object.keys(filtered);
+      if(!filtered_shorts.includes(req.params.shortURL)){
+        res.status(500);
+        res.send("This link does not belong to you!")
+      }
+      urlDatabase[req.params.shortURL].longURL = req.body.longUrl;
+      res.redirect("/urls");
+    });
+
+    app.listen(PORT, () => {
+      console.log(`Example app listening on port ${PORT}!`);
+    });
