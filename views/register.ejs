@@ -8,48 +8,24 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
     integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-  <title>TinyApp</title>
+
+  <title>New URL - TinyApp Example</title>
 </head>
 
 <body>
-  <header>
-    <% include ./partials/_header %>
-  </header>
-  <main style="margin: 1em;">
-    <h3>My URLs</h3>
-    <table class="table table-hover">
-      <thead>
-        <tr>
-          <th scope="col">Short URL</th>
-          <th scope="col">Long URL</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% for(let url in urls) { %>
-        <tr>
-          <td><%= url %></td>
-          <td><%= urls[url] %></td>
-          <td>
-              <td>
-                  <a class="btn btn-link" href="/urls/<%= url %>">
-                    Edit
-                  </a>
-                </td>
-          </td>
-          <td>
-            <form method="POST" action="/urls/<%= url %>/delete">
-              <div class="form-group">
-                <button class="btn btn-danger" type="submit">
-                  Delete
-                </button>
-              </div>
-            </form>
-          </td>
-        </tr>
-        <% } %>
-      </tbody>
-    </table>
-  </main>
+
+  <% include partials/_header %>
+  <h1>Create Account</h1>
+  <form class="form-group" action="/register" method="POST" style="padding:5em">
+    <label for="email">Email address</label>
+    <input type="email" class="form-control" name="email" aria-describedby="emailHelp" placeholder="Enter email">
+  </div>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password" name="password">
+  </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
   <!-- Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
     integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
