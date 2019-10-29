@@ -30,6 +30,13 @@
           <td><%= url %></td>
           <td><%= urls[url] %></td>
           <td>
+              <td>
+                  <a class="btn btn-link" href="/urls/<%= url %>">
+                    Edit
+                  </a>
+                </td>
+          </td>
+          <td>
             <form method="POST" action="/urls/<%= url %>/delete">
               <div class="form-group">
                 <button class="btn btn-danger" type="submit">
