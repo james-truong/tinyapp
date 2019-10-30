@@ -1,6 +1,6 @@
-const {urlDatabase, users} = require('./data')
+const {urlDatabase, users} = require('./data');
 //Find user by their email
-const getUserByEmail = function (email, database) {
+const getUserByEmail = function(email, database) {
   // lookup magic...
   for (const user of Object.keys(database)) {
     if (database[user].email === email) {
@@ -10,7 +10,7 @@ const getUserByEmail = function (email, database) {
 };
 
 //Filter URLS only for that particular user
-const getUrlsForUser = function (userId) {
+const getUrlsForUser = function(userId) {
   const filtered = {};
   for (let key of Object.keys(urlDatabase)) {
     if (urlDatabase[key].userID === userId) {
@@ -33,8 +33,8 @@ function generateRandomString() {
 }
 
 // searched for users by their id - used in cookie-sessions
-const lookUp = function (id) {
+const lookUp = function(id) {
   return users[id];
-}
+};
 
 module.exports = { getUserByEmail, generateRandomString, lookUp, getUrlsForUser};

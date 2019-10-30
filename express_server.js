@@ -1,10 +1,10 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-var cookieSession = require('cookie-session');
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
-const { getUserByEmail, generateRandomString, lookUp, getUrlsForUser } = require('./helpers');
-const {urlDatabase, users} = require('./data')
+const { getUserByEmail, generateRandomString, getUrlsForUser } = require('./helpers');
+const {urlDatabase, users} = require('./data');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
@@ -16,16 +16,15 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 app.get("/", (req, res) => {
   if (req.session.user_id) {
-    res.redirect("/urls")
-  }
-  else {
-    res.redirect("/login")
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
   }
 });
 
 app.get("/urls", (req, res) => {
-  console.log('/urls')
-  console.log(urlDatabase)
+  console.log('/urls');
+  console.log(urlDatabase);
   let filtered = getUrlsForUser(req.session.user_id);
   let templateVars = {
     urls: filtered, user: users[req.session.user_id]
@@ -54,8 +53,8 @@ app.get("/urls/new", (req, res) => {
       urls: urlDatabase, user: users[req.session.user_id]
     };
     res.render("urls_new", templateVars);
-  };
-})
+  }
+});
 
 app.post("/urls/", (req, res) => {
   let random = generateRandomString();
@@ -68,26 +67,25 @@ app.post("/urls/", (req, res) => {
 app.post("/login", (req, res) => {
   let emails = [];
   for (const user of Object.keys(users)) {
-    emails.push(users[user].email)
+    emails.push(users[user].email);
   }
   if (!emails.includes(req.body.email)) {
     res.status(403);
-    res.send("Error, email is not registered.")
+    res.send("Error, email is not registered.");
   }
   for (const user of Object.keys(users)) {
-    if (users[user].email === req.body.email && bcrypt.compareSync(req.body.password, users[user].password)) // returns true
-    {
-      req.session.user_id = user;
+    if (users[user].email === req.body.email && bcrypt.compareSync(req.body.password, users[user].password)) {
+      req.session.userID = user;
       return res.redirect("/urls/");
     }
     if (users[user].email === req.body.email && !bcrypt.compareSync(req.body.password, users[user].password)) {
-      res.send("Email exists, passwords don't!")
+      res.send("Email exists, passwords don't!");
     }
   }
 
 });
 app.post("/logout", (req, res) => {
-  req.session.user_id = null;
+  req.session.userID = null;
   res.redirect("/urls/");
 });
 
@@ -96,7 +94,6 @@ app.post("/register", (req, res) => {
     res.status(400);
     res.send('None shall pass with an empty password');
   }
-  const user = getUserByEmail(req.body.email, users);
   if (getUserByEmail(req.body.email, users)) {
     res.status(400);
     res.send('User already exists!');
@@ -107,16 +104,16 @@ app.post("/register", (req, res) => {
   users[random].email = req.body.email;
   const hashedPassword = bcrypt.hashSync(req.body.password, 10);
   users[random].password = hashedPassword;
-  req.session.user_id = users[random].id;
-  res.redirect("/urls/")
+  req.session.userID = users[random].id;
+  res.redirect("/urls/");
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  let filtered = getUrlsForUser(req.session.user_id);
-  filtered_shorts = Object.keys(filtered);
-  if (!filtered_shorts.includes(req.params.shortURL)) {
+  let filtered = getUrlsForUser(req.session.userID);
+  let filteredShorts = Object.keys(filtered);
+  if (!filteredShorts.includes(req.params.shortURL)) {
     res.status(500);
-    res.send("This link does not belong to you or it does not exist.")
+    res.send("This link does not belong to you or it does not exist.");
   }
 
   let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session.user_id] };
@@ -128,29 +125,28 @@ app.get("/u/:shortURL", (req, res) => {
   let short = req.params.shortURL;
   if (urlDatabase[short]) {
     res.redirect(urlDatabase[short].longURL);
-  }
-  else {
+  } else {
     res.send("No such shortlink is in our database!");
   }
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  let filtered = getUrlsForUser(req.session.user_id);
-  filtered_shorts = Object.keys(filtered);
-  if (!filtered_shorts.includes(req.params.shortURL)) {
+  let filtered = getUrlsForUser(req.session.userID);
+  let filteredShorts = Object.keys(filtered);
+  if (!filteredShorts.includes(req.params.shortURL)) {
     res.status(500);
-    return res.send("This link does not belong to you!")
+    return res.send("This link does not belong to you!");
   }
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
 });
 
 app.post("/urls/:shortURL/update", (req, res) => {
-  let filtered = getUrlsForUser(req.session.user_id);
-  filtered_shorts = Object.keys(filtered);
-  if (!filtered_shorts.includes(req.params.shortURL)) {
+  let filtered = getUrlsForUser(req.session.userID);
+  let filteredShorts = Object.keys(filtered);
+  if (!filteredShorts.includes(req.params.shortURL)) {
     res.status(500);
-    res.send("This link does not belong to you!")
+    res.send("This link does not belong to you!");
   }
   urlDatabase[req.params.shortURL].longURL = req.body.longUrl;
   res.redirect("/urls");
