@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-var cookieParser = require('cookie-parser')
+var cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser())
@@ -12,12 +13,12 @@ const users = {
   "userRandomID": {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
   "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   }
 }
 
@@ -60,138 +61,141 @@ function generateRandomString() {
   }
   return result;
 }
-const getUrlsForUser = function(userId) {
+const getUrlsForUser = function (userId) {
   const urlRecords = urlDatabase;
   const filtered = {};
   for (let key of Object.keys(urlDatabase)) {
     if (urlDatabase[key].userID === userId) {
-       filtered[key] = {longURL: urlDatabase[key].longURL};
+      filtered[key] = { longURL: urlDatabase[key].longURL };
     }
   }
-  console.log(filtered);
+  //console.log(filtered);
   return filtered;
 };
-  app.get("/urls", (req, res) => {
-    let filtered = getUrlsForUser(req.cookies["user_id"]);
+app.get("/urls", (req, res) => {
+  let filtered = getUrlsForUser(req.cookies["user_id"]);
+  let templateVars = {
+    urls: filtered, user: users[req.cookies["user_id"]]
+  };
+  //console.log(users)
+  res.render("urls_index", templateVars);
+});
+app.get("/register", (req, res) => {
+  let templateVars = {
+    urls: urlDatabase, user: users[req.cookies["user_id"]]
+  };
+  res.render("register", templateVars);
+});
+app.get("/login", (req, res) => {
+  let templateVars = {
+    urls: urlDatabase, user: users[req.cookies["user_id"]]
+  };
+  res.render("login", templateVars);
+});
+
+app.get("/urls/new", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login");
+  } else {
     let templateVars = {
-      urls: filtered, user: users[req.cookies["user_id"]]
+      urls: urlDatabase, user: users[req.cookies["user_id"]]
     };
-    console.log(templateVars.urls)
-    res.render("urls_index", templateVars);
-  });
-    app.get("/register", (req, res) => {
-      let templateVars = {
-        urls: urlDatabase, user: users[req.cookies["user_id"]]
-      };
-      res.render("register", templateVars);
-    });
-    app.get("/login", (req, res) => {
-      let templateVars = {
-        urls: urlDatabase, user: users[req.cookies["user_id"]]
-      };
-      res.render("login", templateVars);
-    });
+    res.render("urls_new", templateVars);
+  };
+})
 
-    app.get("/urls/new", (req, res) => {
-      if (!req.cookies["user_id"]) {
-        res.redirect("/login");
-      } else {
-        let templateVars = {
-          urls: urlDatabase, user: users[req.cookies["user_id"]]
-        };
-        res.render("urls_new", templateVars);
-      };
-    })
+app.post("/urls/", (req, res) => {
+  let random = generateRandomString();
+  urlDatabase[random] = {};
+  urlDatabase[random].longURL = req.body.longURL;
+  urlDatabase[random].userID = req.cookies["user_id"];
+  res.redirect("/urls/");
+});
 
-    app.post("/urls/", (req, res) => {
-      let random = generateRandomString();
-      urlDatabase[random] = {};
-      urlDatabase[random].longURL = req.body.longURL;
-      urlDatabase[random].userID = req.cookies["user_id"];
+app.post("/login", (req, res) => {
+  let emails = [];
+  for (const user of Object.keys(users)) {
+    emails.push(users[user].email)
+  }
+  if (!emails.includes(req.body.email)) {
+    res.status(403);
+    res.send("Error, email is not registered.")
+  }
+  for (const user of Object.keys(users)) {
+    if (users[user].email === req.body.email && bcrypt.compareSync(req.body.password, users[user].password)) // returns true
+    {
+      res.cookie('user_id', user);
       res.redirect("/urls/");
-    });
-
-    app.post("/login", (req, res) => {
-      let emails = [];
-      for (const user of Object.keys(users)) {
-        emails.push(users[user].email)
-      }
-      if (!emails.includes(req.body.email)) {
-        res.status(403);
-        res.send("Error, email is not registered.")
-      }
-      for (const user of Object.keys(users)) {
-        if (users[user].email === req.body.email && users[user].password === req.body.password) {
-          res.cookie('user_id', user);
-          res.redirect("/urls/");
-        }
-      }
+    }
+    if (users[user].email === req.body.email && !bcrypt.compareSync(req.body.password, users[user].password)) {
       res.send("Email exists, passwords don't!")
+    }
+  }
 
-    });
-    app.post("/logout", (req, res) => {
-      res.clearCookie('user_id')
-      res.redirect("/urls/");
-    });
+});
+app.post("/logout", (req, res) => {
+  res.clearCookie('user_id')
+  res.redirect("/urls/");
+});
 
-    app.post("/register", (req, res) => {
-      if (req.body.password === '') {
-        res.status(400);
-        res.send('None shall pass');
-      }
-      if (findingIfUserExists(users, req.body.email)) {
-        res.status(400);
-        res.send('None shall pass');
-      }
-      let random = generateRandomString();
-      users[random] = {};
-      users[random].id = random;
-      users[random].email = req.body.email;
-      users[random].password = req.body.password;
+app.post("/register", (req, res) => {
+  if (req.body.password === '') {
+    res.status(400);
+    res.send('None shall pass with an empty password');
+  }
+  if (findingIfUserExists(users, req.body.email)) {
+    res.status(400);
+    res.send('User already exists!');
+  }
+  let random = generateRandomString();
+  users[random] = {};
+  users[random].id = random;
+  users[random].email = req.body.email;
+  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+  users[random].password = hashedPassword;
+  res.cookie('user_id', random);
+  res.redirect("/urls/")
+});
 
-      res.cookie('user_id', random);
-      res.redirect("/urls/")
-    });
+app.get("/urls/:shortURL", (req, res) => {
+  let filtered = getUrlsForUser(req.cookies["user_id"]);
+  filtered_shorts = Object.keys(filtered);
+  if (!filtered_shorts.includes(req.params.shortURL)) {
+    res.status(500);
+    res.send("This link does not belong to you!")
+  }
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.cookies["user_id"]] };
+  res.render("urls_show", templateVars);
+});
 
-    app.get("/urls/:shortURL", (req, res) => {
-      let filtered = getUrlsForUser(req.cookies["user_id"]);
-      filtered_shorts = Object.keys(filtered);
-      if(!filtered_shorts.includes(req.params.shortURL)){
-        res.status(500);
-        res.send("This link does not belong to you!")
-      }
-      let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.cookies["user_id"]] };
-      res.render("urls_show", templateVars);
-    });
+app.get("/u/:shortURL", (req, res) => {
+  // const longURL = ...
+  let short = req.params.shortURL;
+  res.redirect(urlDatabase[short].longURL);
+});
 
-    app.get("/u/:shortURL", (req, res) => {
-      // const longURL = ...
-      let short = req.params.shortURL;
-      res.redirect(urlDatabase[short].longURL);
-    });
+app.post("/urls/:shortURL/delete", (req, res) => {
+  let filtered = getUrlsForUser(req.cookies["user_id"]);
+  filtered_shorts = Object.keys(filtered);
+  if (!filtered_shorts.includes(req.params.shortURL)) {
+    res.status(500);
+    res.send("This link does not belong to you!")
+  }
+  delete urlDatabase[req.params.shortURL];
+  res.redirect("/urls");
+});
 
-    app.post("/urls/:shortURL/delete", (req, res) => {
-      let filtered = getUrlsForUser(req.cookies["user_id"]);
-      filtered_shorts = Object.keys(filtered);
-      if(!filtered_shorts.includes(req.params.shortURL)){
-        res.status(500);
-        res.send("This link does not belong to you!")
-      }
-      delete urlDatabase[req.params.shortURL];
-      res.redirect("/urls");
-    });
+app.post("/urls/:shortURL/update", (req, res) => {
+  let filtered = getUrlsForUser(req.cookies["user_id"]);
+  filtered_shorts = Object.keys(filtered);
+  if (!filtered_shorts.includes(req.params.shortURL)) {
+    res.status(500);
+    res.send("This link does not belong to you!")
+  }
+  urlDatabase[req.params.shortURL].longURL = req.body.longUrl;
+  res.redirect("/urls");
+});
 
-    app.post("/urls/:shortURL/update", (req, res) => {
-      let filtered = getUrlsForUser(req.cookies["user_id"]);
-      filtered_shorts = Object.keys(filtered);
-      if(!filtered_shorts.includes(req.params.shortURL)){
-        res.status(500);
-        res.send("This link does not belong to you!")
-      }
-      urlDatabase[req.params.shortURL].longURL = req.body.longUrl;
-      res.redirect("/urls");
-    });
-
-    app.listen(PORT, () => {
-      console.log(`Example app listening on port ${PORT}!`);
-    });
+app.listen(PORT, () => {
+  console.log(`Example app listening on port ${PORT}!`);
+});
