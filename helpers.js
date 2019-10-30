@@ -1,8 +1,6 @@
-const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
-};
-const getUserByEmail = function(email, database) {
+const {urlDatabase, users} = require('./data')
+//Find user by their email
+const getUserByEmail = function (email, database) {
   // lookup magic...
   for (const user of Object.keys(database)) {
     if (database[user].email === email) {
@@ -11,8 +9,8 @@ const getUserByEmail = function(email, database) {
   }
 };
 
+//Filter URLS only for that particular user
 const getUrlsForUser = function (userId) {
-  const urlRecords = urlDatabase;
   const filtered = {};
   for (let key of Object.keys(urlDatabase)) {
     if (urlDatabase[key].userID === userId) {
@@ -23,6 +21,7 @@ const getUrlsForUser = function (userId) {
   return filtered;
 };
 
+// Random string generator for the short URLs
 function generateRandomString() {
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -33,8 +32,9 @@ function generateRandomString() {
   return result;
 }
 
+// searched for users by their id - used in cookie-sessions
 const lookUp = function (id) {
   return users[id];
 }
 
-module.exports = {getUserByEmail, getUrlsForUser, generateRandomString, lookUp};
+module.exports = { getUserByEmail, generateRandomString, lookUp, getUrlsForUser};

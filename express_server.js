@@ -3,7 +3,8 @@ const bodyParser = require("body-parser");
 var cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
-const {getUserByEmail, getUrlsForUser, generateRandomString, lookUp} = require('./helpers');
+const { getUserByEmail, generateRandomString, lookUp, getUrlsForUser } = require('./helpers');
+const {urlDatabase, users} = require('./data')
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
@@ -13,38 +14,18 @@ app.use(cookieSession({
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
-
-const users = {
-  "userRandomID": {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
-  },
-  "user2RandomID": {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: bcrypt.hashSync("dishwasher-funk", 10)
+app.get("/", (req, res) => {
+  if (req.session.user_id) {
+    res.redirect("/urls")
   }
-}
-
-const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
-};
-
-// app.get("/", (req, res) => {
-//   res.send("Hello!");
-// });
-
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
-
-// app.get("/hello", (req, res) => {
-//   res.send("<html><body>Hello <b>World</b></body></html>\n");
-// });
+  else {
+    res.redirect("/login")
+  }
+});
 
 app.get("/urls", (req, res) => {
+  console.log('/urls')
+  console.log(urlDatabase)
   let filtered = getUrlsForUser(req.session.user_id);
   let templateVars = {
     urls: filtered, user: users[req.session.user_id]
@@ -96,8 +77,8 @@ app.post("/login", (req, res) => {
   for (const user of Object.keys(users)) {
     if (users[user].email === req.body.email && bcrypt.compareSync(req.body.password, users[user].password)) // returns true
     {
-      req.session.user_id = user
-      res.redirect("/urls/");
+      req.session.user_id = user;
+      return res.redirect("/urls/");
     }
     if (users[user].email === req.body.email && !bcrypt.compareSync(req.body.password, users[user].password)) {
       res.send("Email exists, passwords don't!")
@@ -115,7 +96,8 @@ app.post("/register", (req, res) => {
     res.status(400);
     res.send('None shall pass with an empty password');
   }
-  if (getUserByEmail(req.body.email,users)) {
+  const user = getUserByEmail(req.body.email, users);
+  if (getUserByEmail(req.body.email, users)) {
     res.status(400);
     res.send('User already exists!');
   }
@@ -125,7 +107,7 @@ app.post("/register", (req, res) => {
   users[random].email = req.body.email;
   const hashedPassword = bcrypt.hashSync(req.body.password, 10);
   users[random].password = hashedPassword;
-  req.session.user_id = user
+  req.session.user_id = users[random].id;
   res.redirect("/urls/")
 });
 
@@ -134,8 +116,9 @@ app.get("/urls/:shortURL", (req, res) => {
   filtered_shorts = Object.keys(filtered);
   if (!filtered_shorts.includes(req.params.shortURL)) {
     res.status(500);
-    res.send("This link does not belong to you!")
+    res.send("This link does not belong to you or it does not exist.")
   }
+
   let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session.user_id] };
   res.render("urls_show", templateVars);
 });
@@ -143,7 +126,12 @@ app.get("/urls/:shortURL", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   // const longURL = ...
   let short = req.params.shortURL;
-  res.redirect(urlDatabase[short].longURL);
+  if (urlDatabase[short]) {
+    res.redirect(urlDatabase[short].longURL);
+  }
+  else {
+    res.send("No such shortlink is in our database!");
+  }
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -151,7 +139,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   filtered_shorts = Object.keys(filtered);
   if (!filtered_shorts.includes(req.params.shortURL)) {
     res.status(500);
-    res.send("This link does not belong to you!")
+    return res.send("This link does not belong to you!")
   }
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
