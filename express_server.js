@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 var cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
+const {getUserByEmail, getUrlsForUser, generateRandomString, lookUp} = require('./helpers');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
@@ -26,24 +27,10 @@ const users = {
   }
 }
 
-const lookUp = function (id) {
-  return users[id];
-}
-
-const findingIfUserExists = function (data = users, email) {
-  for (const user of Object.keys(data)) {
-    if (data[user].email === email) {
-      return true;
-    }
-  }
-  return false;
-}
-
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
 };
-
 
 // app.get("/", (req, res) => {
 //   res.send("Hello!");
@@ -56,26 +43,7 @@ const urlDatabase = {
 // app.get("/hello", (req, res) => {
 //   res.send("<html><body>Hello <b>World</b></body></html>\n");
 // });
-function generateRandomString() {
-  let result = '';
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let charactersLength = characters.length;
-  for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
-const getUrlsForUser = function (userId) {
-  const urlRecords = urlDatabase;
-  const filtered = {};
-  for (let key of Object.keys(urlDatabase)) {
-    if (urlDatabase[key].userID === userId) {
-      filtered[key] = { longURL: urlDatabase[key].longURL };
-    }
-  }
-  //console.log(filtered);
-  return filtered;
-};
+
 app.get("/urls", (req, res) => {
   let filtered = getUrlsForUser(req.session.user_id);
   let templateVars = {
@@ -138,7 +106,7 @@ app.post("/login", (req, res) => {
 
 });
 app.post("/logout", (req, res) => {
-  req.session.userId = null;
+  req.session.user_id = null;
   res.redirect("/urls/");
 });
 
@@ -147,7 +115,7 @@ app.post("/register", (req, res) => {
     res.status(400);
     res.send('None shall pass with an empty password');
   }
-  if (findingIfUserExists(users, req.body.email)) {
+  if (getUserByEmail(req.body.email,users)) {
     res.status(400);
     res.send('User already exists!');
   }
