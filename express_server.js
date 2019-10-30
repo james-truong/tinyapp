@@ -2,6 +2,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
+const methodOverride = require('method-override');
+
 const app = express();
 const { getUserByEmail, generateRandomString, getUrlsForUser } = require('./helpers');
 const {urlDatabase, users} = require('./data');
@@ -11,6 +13,7 @@ app.use(cookieSession({
   keys: process.env.session_keys || ['development'],
   maxAge: 24 * 60 * 60 * 1000
 }));
+app.use(methodOverride('_method'));
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
@@ -130,7 +133,7 @@ app.get("/u/:shortURL", (req, res) => {
   }
 });
 
-app.post("/urls/:shortURL/delete", (req, res) => {
+app.delete("/urls/:shortURL/", (req, res) => {
   let filtered = getUrlsForUser(req.session.userID);
   let filteredShorts = Object.keys(filtered);
   if (!filteredShorts.includes(req.params.shortURL)) {
@@ -141,7 +144,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-app.post("/urls/:shortURL/update", (req, res) => {
+app.patch("/urls/:shortURL/", (req, res) => {
   let filtered = getUrlsForUser(req.session.userID);
   let filteredShorts = Object.keys(filtered);
   if (!filteredShorts.includes(req.params.shortURL)) {
