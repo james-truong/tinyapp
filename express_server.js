@@ -15,7 +15,7 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 app.get("/", (req, res) => {
-  if (req.session.user_id) {
+  if (req.session.userID) {
     res.redirect("/urls");
   } else {
     res.redirect("/login");
@@ -25,32 +25,32 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   console.log('/urls');
   console.log(urlDatabase);
-  let filtered = getUrlsForUser(req.session.user_id);
+  let filtered = getUrlsForUser(req.session.userID);
   let templateVars = {
-    urls: filtered, user: users[req.session.user_id]
+    urls: filtered, user: users[req.session.userID]
   };
   //console.log(users)
   res.render("urls_index", templateVars);
 });
 app.get("/register", (req, res) => {
   let templateVars = {
-    urls: urlDatabase, user: users[req.session.user_id]
+    urls: urlDatabase, user: users[req.session.userID]
   };
   res.render("register", templateVars);
 });
 app.get("/login", (req, res) => {
   let templateVars = {
-    urls: urlDatabase, user: users[req.session.user_id]
+    urls: urlDatabase, user: users[req.session.userID]
   };
   res.render("login", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  if (!req.session.user_id) {
+  if (!req.session.userID) {
     res.redirect("/login");
   } else {
     let templateVars = {
-      urls: urlDatabase, user: users[req.session.user_id]
+      urls: urlDatabase, user: users[req.session.userID]
     };
     res.render("urls_new", templateVars);
   }
@@ -60,7 +60,7 @@ app.post("/urls/", (req, res) => {
   let random = generateRandomString();
   urlDatabase[random] = {};
   urlDatabase[random].longURL = req.body.longURL;
-  urlDatabase[random].userID = req.session.user_id;
+  urlDatabase[random].userID = req.session.userID;
   res.redirect("/urls/");
 });
 
@@ -116,7 +116,7 @@ app.get("/urls/:shortURL", (req, res) => {
     res.send("This link does not belong to you or it does not exist.");
   }
 
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session.user_id] };
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session.userID] };
   res.render("urls_show", templateVars);
 });
 
