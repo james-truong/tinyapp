@@ -17,6 +17,11 @@
     <div class="card-body">
       <h5 class="card-title">TinyURL for: <%= longURL %></h5>
       <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
+      <p class="card-text">Amount of times visited: <%= data[shortURL].count %></p>
+      <p class="card-text">Amount of UNIQUE vistors: <%= data[shortURL].visitors.size %></p>
+      <% for(log of data[shortURL].visitorLog) { %>
+        <p> <%= log.id %> visited at <%= log.timestamp %>  </p>
+        <% } %> 
     </div>
     <div class="card-footer text-muted">
       <form method="POST" action="/urls/<%= shortURL %>/?_method=PATCH">

@@ -26,13 +26,10 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  console.log('/urls');
-  console.log(urlDatabase);
   let filtered = getUrlsForUser(req.session.userID);
   let templateVars = {
     urls: filtered, user: users[req.session.userID]
   };
-  //console.log(users)
   res.render("urls_index", templateVars);
 });
 app.get("/register", (req, res) => {
@@ -119,7 +116,7 @@ app.get("/urls/:shortURL", (req, res) => {
     res.send("This link does not belong to you or it does not exist.");
   }
 
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session.userID] };
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.session.userID], data: urlDatabase };
   res.render("urls_show", templateVars);
 });
 
@@ -127,11 +124,33 @@ app.get("/u/:shortURL", (req, res) => {
   // const longURL = ...
   let short = req.params.shortURL;
   if (urlDatabase[short]) {
+    urlDatabase[short].count = urlDatabase[short].count + 1 || 1;
+    if(req.session.userID){
+      req.session.visitorId = req.session.userID;
+    } else if (!req.session.visitorId) {
+      const visitTime = Date.now();
+      req.session.visitorId = (bcrypt.hashSync(visitTime.toString(), 10));
+    }
+    if (urlDatabase[short].visitors){
+      (urlDatabase[short].visitors).add(req.session.visitorId);
+    } else {
+      urlDatabase[short].visitors = new Set();
+      (urlDatabase[short].visitors).add(req.session.visitorId);
+    }
+    if (urlDatabase[short].visitorLog){
+      urlDatabase[short].visitorLog.push({ id: req.session.visitorId, timestamp: new Date() });
+    } else {
+      urlDatabase[short].visitorLog = [];
+      urlDatabase[short].visitorLog.push({ id: req.session.visitorId, timestamp: new Date() });
+    }
+    console.log(urlDatabase);
     res.redirect(urlDatabase[short].longURL);
   } else {
     res.send("No such shortlink is in our database!");
   }
 });
+
+
 
 app.delete("/urls/:shortURL/", (req, res) => {
   let filtered = getUrlsForUser(req.session.userID);
