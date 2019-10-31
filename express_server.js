@@ -14,6 +14,13 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000
 }));
 app.use(methodOverride('_method'));
+app.use('/urls', function (req, res, next) {
+  if (req.session.user_id) {
+    res.redirect('/login');
+  } else {
+    next();
+  }
+});
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
