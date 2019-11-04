@@ -68,6 +68,9 @@ app.post("/urls/", (req, res) => {
   urlDatabase[random] = {};
   urlDatabase[random].longURL = req.body.longURL;
   urlDatabase[random].userID = req.session.userID;
+  urlDatabase[random].visitors = new Set();
+  urlDatabase[random].visitorLog = [];
+
   res.redirect("/urls/");
 });
 
